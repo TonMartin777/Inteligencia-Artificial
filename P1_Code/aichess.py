@@ -493,7 +493,6 @@ class Aichess():
                 self.listVisitedStates.append(current_state)
 
                 # Creem copia de la posicio per utilitzar getListNextStatesW
-                # I prints per debug
                 TA = np.zeros((8, 8))
                 for i in current_state:
                     TA[i[0]][i[1]] = i[2]
@@ -502,14 +501,8 @@ class Aichess():
                 # Creem nova taula amb el nostre moviment
                 newboard = Aichess(TA)
 
-                # Prints per debug
-                newboard.chess.board.print_board()
-                print(f_current)
-
                 # Obtenim seguents taules possibles
                 next_states = newboard.getListNextStatesW(current_state)
-
-                #print(next_states)
 
                 # Comprovem les seguents taules possibles
                 for son in next_states:
@@ -535,6 +528,7 @@ class Aichess():
 
         # Usem distancia de Chebyshev, quantitat de moviments del rei per arribar a la nostra casella
         h_king = max(abs(white_king_pos[0] - 2), abs(white_king_pos[1] - 4))
+
         # Llista amb totes les columnes on, si la torre esta ala fila 0, es fa checkmate
         target_rook_cols = [0, 1, 2, 6, 7]
 
