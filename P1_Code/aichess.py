@@ -514,7 +514,7 @@ class Aichess():
                         id_counter += 1
                         frontier.put((f_son, id_counter, son))
 
-    # Heurística per calcular la distància  de Manhattan entre l'estat actual i el checkmate
+    # Heurística per calcular la distància de Chebyshev entre l'estat actual i el checkmate
     def h(self, currentState):
         white_king_pos = [0,0]
         white_rook_pos = [0,0]
