@@ -617,11 +617,51 @@ class Aichess():
         return expected_value / total_weight
 
     def minimaxGame(self, depthWhite, depthBlack):
-        
         currentState = self.getCurrentState()        
-        # Your code here
+        turn = True # True = Blanques, False = Negres
+        turns = 0
 
+        # Sempre que no s'hagi guanyat
+        while not self.isWhiteInCheckMate(currentState) and not self.isBlackInCheckMate(currentState):
+            # S'indica el torn actual
+            if turn:
+                print("Torn", turns + 1, "Juguen les blanques")
+            else:
+                print("Torn", turns + 1, "Juguen les negres")
 
+            self.newBoardSim(currentState) # S'actualitza el tauler
+
+            # Es fa servir minimax en cada jugador per trobar la jugada més òptima
+            if turn:
+                best_state = self.minimaxMove(currentState, depthWhite, is_white_turn=True)
+            else:
+                best_state = self.minimaxMove(currentState, depthBlack, is_white_turn=False)
+
+            # Si no es troba, empat
+            if best_state is None:
+                print("La partida acaba en empat")
+                break
+            
+            # Troba el moviment per passar del tauler actual al millor
+            movement = self.getMovement(currentState, best_state)
+            if movement[0] is not None and movement[1] is not None:
+                start_pos = (movement[0][0], movement[0][1])
+                end_pos = (movement[1][0], movement[1][1])
+                self.chess.move(start_pos, end_pos) # S'executa el moviment
+            else:
+                print("ERROR: No s'ha pogut calcular el moiviment")
+                break
+
+            # Es passa al seguent torn, i es canvia el jugador
+            currentState = self.getCurrentState()
+            self.chess.board.print_board()
+            turn = not turn
+            turn_count += 1
+
+    def minimaxMove(self, state, depth, is_white_turn):
+        print("TODO")
+
+    
     def alphaBetaPoda(self, depthWhite, depthBlack):
         
         currentState = self.getCurrentState()
