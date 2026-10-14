@@ -485,8 +485,8 @@ class Aichess():
 
             # Comprovem si es mat
             if self.isCheckMate(current_state):
-                    self.reconstructPath(current_state, g_current)
-                    return True
+                self.reconstructPath(current_state, g_current)
+                return True
 
             # Si no esta visitat, el visitem
             if not self.isVisited(current_state):
