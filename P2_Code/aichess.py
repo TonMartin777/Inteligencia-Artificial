@@ -618,50 +618,76 @@ class Aichess():
 
     def minimaxGame(self, depthWhite, depthBlack):
         currentState = self.getCurrentState()        
-        turn = True # True = Blanques, False = Negres
+        is_white_turn = True # True = Blanques, False = Negres
         turns = 0
 
         # Sempre que no s'hagi guanyat
         while not self.isWhiteInCheckMate(currentState) and not self.isBlackInCheckMate(currentState):
+            
             # S'indica el torn actual
-            if turn:
+            if is_white_turn:
                 print("Torn", turns + 1, "Juguen les blanques")
             else:
                 print("Torn", turns + 1, "Juguen les negres")
 
             self.newBoardSim(currentState) # S'actualitza el tauler
 
-            # Es fa servir minimax en cada jugador per trobar la jugada més òptima
-            if turn:
-                best_state = self.minimaxMove(currentState, depthWhite, is_white_turn=True)
-            else:
-                best_state = self.minimaxMove(currentState, depthBlack, is_white_turn=False)
-
-            # Si no es troba, empat
-            if best_state is None:
-                print("La partida acaba en empat")
-                break
+            depth = 4
             
-            # Troba el moviment per passar del tauler actual al millor
-            movement = self.getMovement(currentState, best_state)
+            # Es fa servir minimax en cada jugador per trobar la jugada més òptima
+            if is_white_turn:
+                eval_best = -9000
+                state_best = None
+                for state_next in self.getListNextStatesW(self):
+                    eval_next = self.eval(state_next, depth, (is_white_turn ^ 1))
+                    if eval_next > eval_best:
+                        eval_best, state_best = eval_next, state_next
+            else:
+                eval_best = 9000
+                state_best = None
+                for state_next in self.getListNextStatesB(self):
+                    eval_next = self.eval(state_next, depth, (is_white_turn ^ 1))
+                    if eval_next < eval_best:
+                        eval_best, state_best = eval_next, state_next
+            # 老师看看 (cat. - mira profe)
+            # Tot en una linea!
+            #state_best = [max((self.eval(state_next, 4, (is_white_turn ^ 1)), state_next) for state_next in self.getListNextStatesW(self))[1] if is_white_turn else min((self.eval(state_next, 4, (is_white_turn ^ 1)), state_next) for state_next in self.getListNextStatesB(self))[1]]
+            # Troba el moviment per passar del tauler actu-{|al al millor
+            movement = self.getMovement(currentState, state_best)
             if movement[0] is not None and movement[1] is not None:
                 start_pos = (movement[0][0], movement[0][1])
                 end_pos = (movement[1][0], movement[1][1])
                 self.chess.move(start_pos, end_pos) # S'executa el moviment
             else:
-                print("ERROR: No s'ha pogut calcular el moiviment")
+                print("ERROR: No s'ha pogut calcular el moviment")
                 break
 
             # Es passa al seguent torn, i es canvia el jugador
             currentState = self.getCurrentState()
             self.chess.board.print_board()
-            turn = not turn
+            is_white_turn = not is_white_turn
             turn_count += 1
 
-    def minimaxMove(self, state, depth, is_white_turn):
-        print("TODO")
+    def eval(self, state, depth, is_white_turn):
 
-    
+        if depth == 0:
+            return self.heuristica(state, is_white_turn)
+        if is_white_turn:
+            eval_best = -9000   
+            state_best = None
+            for state_next in self.getListNextStatesW(state):
+                eval_next = self.eval(state_next, depth-1, is_white_turn^1)
+                if eval_next > eval_best:
+                    eval_best, state_best = eval_next, state_next
+        else:
+            eval_best = 9000   
+            state_best = None
+            for state_next in self.getListNextStatesW(state):
+                eval_next = self.eval(state_next, depth-1, is_white_turn^1)
+                if eval_next < eval_best:
+                    eval_best, state_best = eval_next, state_next
+        return eval_best
+
     def alphaBetaPoda(self, depthWhite, depthBlack):
         
         currentState = self.getCurrentState()
