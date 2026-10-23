@@ -649,7 +649,7 @@ class Aichess():
                     eval_next = self.eval(state_next, depth, (is_white_turn ^ 1))
                     if eval_next < eval_best:
                         eval_best, state_best = eval_next, state_next
-            # 老师看看 (cat. - mira profe)
+            # 老师看看吧 (cat. - mira profe)
             # Tot en una linea!
             #state_best = [max((self.eval(state_next, 4, (is_white_turn ^ 1)), state_next) for state_next in self.getListNextStatesW(self))[1] if is_white_turn else min((self.eval(state_next, 4, (is_white_turn ^ 1)), state_next) for state_next in self.getListNextStatesB(self))[1]]
             # Troba el moviment per passar del tauler actu-{|al al millor
@@ -666,7 +666,7 @@ class Aichess():
             currentState = self.getCurrentState()
             self.chess.board.print_board()
             is_white_turn = not is_white_turn
-            turn_count += 1
+            turn_count += 1 
 
     def eval(self, state, depth, is_white_turn):
 
@@ -717,6 +717,7 @@ if __name__ == "__main__":
     # Initialise board and print
     print("stating AI chess... ")
     aichess = Aichess(TA, True)
+
     print("printing board")
     aichess.chess.boardSim.print_board()
     
