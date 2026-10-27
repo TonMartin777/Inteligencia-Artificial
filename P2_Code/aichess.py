@@ -551,6 +551,18 @@ class Aichess():
             else:
                 value -= (max(abs(filaWk - 3.5), abs(columnaWk - 3.5))) * 10
 
+        # If both rooks are still on the board, evaluate king positioning so the game progresses
+        if brState is not None and wrState is not None:
+            if bkState[0] in (0, 7) or bkState[1] in (0, 7):
+                value += (abs(filaBk - 3.5) + abs(columnaBk - 3.5)) * 2
+            else:
+                value += (max(abs(filaBk - 3.5), abs(columnaBk - 3.5))) * 2
+
+            if wkState[0] in (0, 7) or wkState[1] in (0, 7):
+                value -= (abs(filaWk - 3.5) + abs(columnaWk - 3.5)) * 2
+            else:
+                value -= (max(abs(filaWk - 3.5), abs(columnaWk - 3.5))) * 2
+
         # If the black king is in check, reward this state.
         if self.isWatchedBk(currentState):
             value += 20
@@ -616,6 +628,46 @@ class Aichess():
         # Final expected value (weighted average)
         return expected_value / total_weight
 
+    def getValidNextStates(self, state, is_white_turn):
+        self.newBoardSim(state)
+        valid_states = []
+        if is_white_turn:
+            brState = self.getPieceState(state, 8)
+            bkState = self.getPieceState(state, 12)
+            blackState = self.getBlackState(state)
+            for nextW in self.getListNextStatesW(self.getWhiteState(state)):
+                if bkState is not None and bkState[0:2] == nextW[0][0:2]:
+                    continue
+                newBlackState = blackState.copy()
+                if brState is not None and brState[0:2] == nextW[0][0:2]:
+                    newBlackState.remove(brState)
+                full_state = nextW + newBlackState
+                wk = self.getPieceState(full_state, 6)
+                br = self.getPieceState(full_state, 8)
+                if (abs(wk[0] - bkState[0]) <= 1 and abs(wk[1] - bkState[1]) <= 1) or (br is not None and (wk[0] == br[0] or wk[1] == br[1])):
+                    if self.isWatchedWk(full_state):
+                        continue
+                valid_states.append(full_state)
+        else:
+            wrState = self.getPieceState(state, 2)
+            wkState = self.getPieceState(state, 6)
+            whiteState = self.getWhiteState(state)
+            for nextB in self.getListNextStatesB(self.getBlackState(state)):
+                if wkState is not None and wkState[0:2] == nextB[0][0:2]:
+                    continue
+                newWhiteState = whiteState.copy()
+                if wrState is not None and wrState[0:2] == nextB[0][0:2]:
+                    newWhiteState.remove(wrState)
+                full_state = nextB + newWhiteState
+                bk = self.getPieceState(full_state, 12)
+                wr = self.getPieceState(full_state, 2)
+                if (abs(bk[0] - wkState[0]) <= 1 and abs(bk[1] - wkState[1]) <= 1) or (wr is not None and (bk[0] == wr[0] or bk[1] == wr[1])):
+                    if self.isWatchedBk(full_state):
+                        continue
+                valid_states.append(full_state)
+        self.newBoardSim(state)
+        return valid_states
+
     def minimaxGame(self, depthWhite, depthBlack):
         currentState = self.getCurrentState()        
         is_white_turn = True # True = Blanques, False = Negres
@@ -623,6 +675,9 @@ class Aichess():
 
         # Sempre que no s'hagi guanyat
         while not self.isWhiteInCheckMate(currentState) and not self.isBlackInCheckMate(currentState):
+            if len(currentState) == 2:
+                print("La partida acaba en empat (només queden els dos reis)")
+                break
             
             # S'indica el torn actual
             if is_white_turn:
@@ -631,28 +686,34 @@ class Aichess():
                 print("Torn", turns + 1, "Juguen les negres")
 
             self.newBoardSim(currentState) # S'actualitza el tauler
-
-            depth = 4
+            self.listVisitedSituations.append((is_white_turn, self.copyState(currentState)))
             
             # Es fa servir minimax en cada jugador per trobar la jugada més òptima
             if is_white_turn:
                 eval_best = -9000
                 state_best = None
-                for state_next in self.getListNextStatesW(self):
-                    eval_next = self.eval(state_next, depth, (is_white_turn ^ 1))
-                    if eval_next > eval_best:
-                        eval_best, state_best = eval_next, state_next
+                for state_next in self.getValidNextStates(currentState, True):
+                    if not self.isVisitedSituation(False, state_next):
+                        eval_next = self.eval(state_next, depthWhite - 1, False)
+                        if eval_next > eval_best:
+                            eval_best, state_best = eval_next, state_next
             else:
                 eval_best = 9000
                 state_best = None
-                for state_next in self.getListNextStatesB(self):
-                    eval_next = self.eval(state_next, depth, (is_white_turn ^ 1))
-                    if eval_next < eval_best:
-                        eval_best, state_best = eval_next, state_next
+                for state_next in self.getValidNextStates(currentState, False):
+                    if not self.isVisitedSituation(True, state_next):
+                        eval_next = self.eval(state_next, depthBlack - 1, True)
+                        if eval_next < eval_best:
+                            eval_best, state_best = eval_next, state_next
             # 老师看看吧 (cat. - mira profe)
             # Tot en una linea!
-            #state_best = [max((self.eval(state_next, 4, (is_white_turn ^ 1)), state_next) for state_next in self.getListNextStatesW(self))[1] if is_white_turn else min((self.eval(state_next, 4, (is_white_turn ^ 1)), state_next) for state_next in self.getListNextStatesB(self))[1]]
-            # Troba el moviment per passar del tauler actu-{|al al millor
+            # state_best = [max((self.eval(state_next, depthWhite - 1, False), state_next) for state_next in self.getValidNextStates(currentState, True))[1] if is_white_turn else min((self.eval(state_next, depthBlack - 1, True), state_next) for state_next in self.getValidNextStates(currentState, False))[1]]
+            
+            if state_best is None:
+                print("La partida acaba en empat")
+                break
+
+            # Troba el moviment per passar del tauler actual al millor
             movement = self.getMovement(currentState, state_best)
             if movement[0] is not None and movement[1] is not None:
                 start_pos = (movement[0][0], movement[0][1])
@@ -666,24 +727,30 @@ class Aichess():
             currentState = self.getCurrentState()
             self.chess.board.print_board()
             is_white_turn = not is_white_turn
-            turn_count += 1 
+            turns += 1 
 
     def eval(self, state, depth, is_white_turn):
-
         if depth == 0:
-            return self.heuristica(state, is_white_turn)
+            return self.heuristica(state, True)
+        next_states = self.getValidNextStates(state, is_white_turn)
+        if not next_states:
+            if is_white_turn and self.isWatchedWk(state):
+                return -1000 - depth
+            if not is_white_turn and self.isWatchedBk(state):
+                return 1000 + depth
+            return 0
         if is_white_turn:
             eval_best = -9000   
             state_best = None
-            for state_next in self.getListNextStatesW(state):
-                eval_next = self.eval(state_next, depth-1, is_white_turn^1)
+            for state_next in next_states:
+                eval_next = self.eval(state_next, depth - 1, False)
                 if eval_next > eval_best:
                     eval_best, state_best = eval_next, state_next
         else:
             eval_best = 9000   
             state_best = None
-            for state_next in self.getListNextStatesW(state):
-                eval_next = self.eval(state_next, depth-1, is_white_turn^1)
+            for state_next in next_states:
+                eval_next = self.eval(state_next, depth - 1, True)
                 if eval_next < eval_best:
                     eval_best, state_best = eval_next, state_next
         return eval_best
@@ -722,5 +789,5 @@ if __name__ == "__main__":
     aichess.chess.boardSim.print_board()
     
     # Run exercise 1
-    aichess.minimaxGame(4,4)
+    aichess.minimaxGame(3,4)
     # Add code to save results and continue with other exercises
