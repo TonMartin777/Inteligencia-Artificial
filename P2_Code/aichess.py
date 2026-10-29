@@ -694,7 +694,9 @@ class Aichess():
                 state_best = None
                 for state_next in self.getValidNextStates(currentState, True):
                     if not self.isVisitedSituation(False, state_next):
-                        eval_next = self.eval(state_next, depthWhite - 1, False)
+
+                        eval_next = self.expectimaxeval(state_next, depthWhite - 1, False) # Evaluació blanques
+
                         if eval_next > eval_best:
                             eval_best, state_best = eval_next, state_next
             else:
@@ -702,7 +704,9 @@ class Aichess():
                 state_best = None
                 for state_next in self.getValidNextStates(currentState, False):
                     if not self.isVisitedSituation(True, state_next):
-                        eval_next = self.eval(state_next, depthBlack - 1, True)
+
+                        eval_next = self.alphabetaeval(state_next, depthBlack - 1, True, -9000, 9000) # Evaluació negres
+
                         if eval_next < eval_best:
                             eval_best, state_best = eval_next, state_next
             # 老师看看吧 (cat. - mira profe)
@@ -739,33 +743,67 @@ class Aichess():
             if not is_white_turn and self.isWatchedBk(state):
                 return 1000 + depth
             return 0
+        
         if is_white_turn:
             eval_best = -9000   
-            state_best = None
             for state_next in next_states:
                 eval_next = self.eval(state_next, depth - 1, False)
                 if eval_next > eval_best:
-                    eval_best, state_best = eval_next, state_next
+                    eval_best= eval_next
         else:
             eval_best = 9000   
-            state_best = None
+
             for state_next in next_states:
                 eval_next = self.eval(state_next, depth - 1, True)
                 if eval_next < eval_best:
-                    eval_best, state_best = eval_next, state_next
+                    eval_best= eval_next
         return eval_best
 
-    def alphaBetaPoda(self, depthWhite, depthBlack):
-        
-        currentState = self.getCurrentState()
-        # Your code here  
-        
-    def expectimax(self, depthWhite, depthBlack):
-        
-        currentState = self.getCurrentState()
-        # Your code here       
-        
+    def alphabetaeval(self, state, depth, is_white_turn, alpha, beta):
+        if depth == 0:
+            return self.heuristica(state, True)
+        next_states = self.getValidNextStates(state, is_white_turn) 
+        if is_white_turn:
+            eval_best = -9000   
+            for state_next in next_states:
+                eval_next = self.alphabetaeval(state_next, depth - 1, False, alpha, beta)
+                eval_best = max(eval_next, eval_best)
+                alpha = max(alpha, eval_best)
+                if beta <= alpha:
+                    break
+        else:
+            eval_best = 9000   
+            for state_next in next_states:
+                eval_next = self.alphabetaeval(state_next, depth - 1, True, alpha, beta)
+                eval_best = min(eval_next, eval_best)
+                beta = min(beta, eval_best)
+                if beta <= alpha:
+                    break
+        return eval_best
 
+    def expectimaxeval(self, state, depth, is_white_turn):
+        if depth == 0:
+            return self.heuristica(state, True)
+        next_states = self.getValidNextStates(state, is_white_turn)
+        if not next_states:
+            if is_white_turn and self.isWatchedWk(state):
+                return -1000 - depth
+            if not is_white_turn and self.isWatchedBk(state):
+                return 1000 + depth
+            return 0
+        
+        if is_white_turn:
+            total_eval = []
+            for state_next in next_states:
+                total_eval.append(self.eval(state_next, depth - 1, False))
+            return self.calculateValue(total_eval)
+        else:
+            eval_best = 9000   
+            for state_next in next_states:
+                eval_next = self.expectimaxeval(state_next, depth - 1, True)
+                if eval_next < eval_best:
+                    eval_best = eval_next
+            return eval_best
 if __name__ == "__main__":
     # if len(sys.argv) < 2:
     #     sys.exit(usage())
